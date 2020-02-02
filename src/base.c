@@ -1,15 +1,6 @@
 #include <stdlib.h>
 #include <limits.h>
-#include "pictools_base.h"
-
-/* Internals */
-static inline uint pixel_index(PTImg src, uint x, uint y){
-  return (src->w * y + x)*src->channels;
-}
-
-#define xy_to_i(src, x, y) (src->w * y + x)
-
-
+#include "base.h"
 
 /* File IO */
 PTImg pt_load(char* file_name){
@@ -54,9 +45,8 @@ bool pt_write(char* file_name, const PTImg img){
 /* Memory allocation */
 PTImg pt_new_img(uint w, uint h, pt_color_mode mode){
   PTImg img = (PTImg) malloc(sizeof(pt_img));
-  if(!img){
+  if(!img)
     return NULL;
-  }
   img->mode = mode;
   img->w = w;
   img->h = h;
@@ -347,7 +337,7 @@ PTImg pt_copy_to_rgba(PTImg src){
       break;
     case INDEXED:
       for(uint i = 0; i < max; i++){
-        new_img->rgba[i] = pt_rgb_to_rgba(&src->palette->colors[src->raw[i]]);
+        new_img->rgba[i] = pt_rgb_to_rgba(src->palette->colors[src->raw[i]]);
       }
       break;
   }
@@ -361,12 +351,12 @@ PTImg pt_copy_to_grayscale(PTImg src){
   switch(src->mode){
     case RGB:
       for(uint i = max; i < max; i++){
-        new_img->raw[i] = pt_rgb_to_grayscale(src->rgb + i);
+        new_img->raw[i] = pt_rgb_to_grayscale(src->rgb[i]);
       }
       break;
     case RGBA:
       for(uint i = max; i < max; i++){
-        new_img->raw[i] = pt_rgba_to_grayscale(src->rgba + i);
+        new_img->raw[i] = pt_rgba_to_grayscale(src->rgba[i]);
       }
       break;
     case GRAYSCALE:
@@ -376,7 +366,7 @@ PTImg pt_copy_to_grayscale(PTImg src){
       break;
     case INDEXED:
       for(uint i = 0; i < max; i++){
-        new_img->raw[i] = pt_rgb_to_grayscale(src->palette->colors + src->raw[i]);
+        new_img->raw[i] = pt_rgb_to_grayscale(src->palette->colors[src->raw[i]]);
       }
       break;
   }

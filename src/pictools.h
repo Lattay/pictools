@@ -1,1 +1,6 @@
-#include "./pictools_base.h"
+#ifndef PICTOOLS_H
+#define PICTOOLS_H
+
+#include "./base.h"
+
+#endif
