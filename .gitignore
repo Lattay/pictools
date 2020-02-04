@@ -1,3 +1,5 @@
 build
 run_test
 *.so
+tags
+libpictools.a

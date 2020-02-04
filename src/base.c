@@ -2,14 +2,27 @@
 #include <limits.h>
 #include "base.h"
 
+#define debug printf
+
+
 /* File IO */
-PTImg pt_load(char* file_name){
+PTImg pt_load(char* file_name, pt_color_mode mode){
   PTImg ptimg = (PTImg) malloc(sizeof(pt_img));
   if(!ptimg){
     return NULL;
   }
-  int w, h, channels;
-  ptimg->raw = stbi_load(file_name, &w, &h, &channels, 4);
+  int w, h, channels, expected;
+  switch(mode){
+    case RGB:
+      expected = 3; break;
+    case RGBA:
+      expected = 4; break;
+    case GRAYSCALE:
+      expected = 1; break;
+    default:
+      expected = 1; break;
+  }
+  ptimg->raw = stbi_load(file_name, &w, &h, &channels, expected);
   ptimg->h = h;
   ptimg->w = w;
   ptimg->channels = channels;
@@ -37,13 +50,42 @@ bool pt_write(char* file_name, const PTImg img){
     fclose(f);
   }
 
-  stbi_write_png(file_name, img->w, img->h, 8, img->raw, 0);
+  if(img->mode == INDEXED){
+    PTImg cimg = pt_copy_to_rgba(img);
+    stbi_write_png(file_name, cimg->w, cimg->h, cimg->channels, cimg->raw, 0);
+    pt_free(cimg);
+  } else {
+    stbi_write_png(file_name, img->w, img->h, img->channels, img->raw, 0);
+  }
 
   return true;
 }
 
+void pt_clear(PTImg img){
+  uint max = img->w * img->h;
+  
+  switch(img->mode){
+    case RGB:
+      max *= 3;
+      break;
+    case RGBA:
+      max *= 4;
+      break;
+    case INDEXED:
+      for(uint i = 0; i < img->palette->length; i++){
+        img->palette->colors[i] = (pt_color) {0, 0, 0};
+      }
+      break;
+    default:
+      ;
+  }
+  for(uint i = 0; i < max; i++){
+    img->raw[i] = 0;
+  }
+}
+
 /* Memory allocation */
-PTImg pt_new_img(uint w, uint h, pt_color_mode mode){
+PTImg pt_new(uint w, uint h, pt_color_mode mode){
   PTImg img = (PTImg) malloc(sizeof(pt_img));
   if(!img)
     return NULL;
@@ -76,7 +118,7 @@ PTImg pt_new_indexed(uint w, uint h, size_t length){
   PTPalette palette = pt_new_palette(length);
   if(!palette)
     return NULL;
-  PTImg img = pt_new_img(w, h, INDEXED);
+  PTImg img = pt_new(w, h, INDEXED);
   img->palette = palette;
   return img;
 }
@@ -90,7 +132,7 @@ PTBinBuf pt_new_bb(uint w, uint h){
   return bb;
 }
 
-void pt_free_img(PTImg img){
+void pt_free(PTImg img){
   if(!img)
     return;
   if(img->raw)
@@ -104,7 +146,7 @@ void pt_free_indexed(PTImg img){
   if(img->mode == INDEXED)
     pt_free_palette(img->palette);
 
-  pt_free_img(img);
+  pt_free(img);
 }
 
 void pt_free_bb(PTBinBuf bb){
@@ -277,12 +319,12 @@ void pt_bb_toggle(PTBinBuf src, uint x, uint y){
 
 /* Copy with conversion */
 PTImg pt_copy_to_rgb(PTImg src){
-  PTImg new_img = pt_new_img(src->w, src->h, RGB);
+  PTImg new_img = pt_new(src->w, src->h, RGB);
   uint max = src->w * src->h;
-  
+
   switch(src->mode){
     case RGB:
-      for(uint i = max; i < max; i++){
+      for(uint i = 0; i < max; i++){
         new_img->rgb[i] = src->rgb[i];
       }
       break;
@@ -312,7 +354,7 @@ PTImg pt_copy_to_rgb(PTImg src){
 }
 
 PTImg pt_copy_to_rgba(PTImg src){
-  PTImg new_img = pt_new_img(src->w, src->h, RGBA);
+  PTImg new_img = pt_new(src->w, src->h, RGBA);
   uint max = src->w * src->h;
   
   switch(src->mode){
@@ -323,7 +365,7 @@ PTImg pt_copy_to_rgba(PTImg src){
       }
       break;
     case RGBA:
-      for(uint i = max; i < max; i++){
+      for(uint i = 0; i < max; i++){
         new_img->rgba[i] = src->rgba[i];
       }
       break;
@@ -345,17 +387,17 @@ PTImg pt_copy_to_rgba(PTImg src){
 }
 
 PTImg pt_copy_to_grayscale(PTImg src){
-  PTImg new_img = pt_new_img(src->w, src->h, GRAYSCALE);
+  PTImg new_img = pt_new(src->w, src->h, GRAYSCALE);
   uint max = src->w * src->h;
   
   switch(src->mode){
     case RGB:
-      for(uint i = max; i < max; i++){
+      for(uint i = 0; i < max; i++){
         new_img->raw[i] = pt_rgb_to_grayscale(src->rgb[i]);
       }
       break;
     case RGBA:
-      for(uint i = max; i < max; i++){
+      for(uint i = 0; i < max; i++){
         new_img->raw[i] = pt_rgba_to_grayscale(src->rgba[i]);
       }
       break;
@@ -374,7 +416,7 @@ PTImg pt_copy_to_grayscale(PTImg src){
 }
 
 PTImg pt_copy_to_indexed(PTImg src){
-  PTImg new_img = pt_new_img(src->w, src->h, RGB);
+  PTImg new_img = pt_new(src->w, src->h, RGB);
   uint max = src->w * src->h;
   
   switch(src->mode){

@@ -2,7 +2,7 @@
 
 PTImg pt_new_from_subregion(PTImg src, pt_rectangle r){
   pt_vec2 size = pt_rect_size(r);
-  PTImg new_img = pt_new_img(size.w, size.h, src->mode);
+  PTImg new_img = pt_new(size.w, size.h, src->mode);
   uint j = 0;
   switch(src->mode){
     case RGB:

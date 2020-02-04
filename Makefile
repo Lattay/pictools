@@ -13,24 +13,22 @@ LFLAGS=
 SRC=$(wildcard src/*.c)
 OBJ=$(patsubst src/%.c,build/%.o,$(SRC))
 
-.PHONY: all clean run
+.PHONY: all clean run_%
 
 all: libpictools.so libpictools.a
 
-run: run_test
-	LD_LIBRARY_PATH=.:$LD_LIBRARY_PATH ./run_test
-	xdg-open ./image.png &
+run_%: test_%
+	./$<
+	xdg-open image.png
 
-debug: run_test
-	gdb ./run_test
-
-run_test: test/test.c libpictools.so
-	$(CC) $(CFLAGS) -lpictools -L./ $(LFLAGS) $^ -lm -o $@
+test_%: test/%.c libpictools.a
+	$(CC) $(CFLAGS) $^ -lm -o $@
 
 libpictools.so: $(OBJ)
 	$(CC) $(LFLAGS) -shared -lm $^ -o $@
 
 libpictools.a: $(OBJ)
+	rm -f $@
 	$(AR) -cvq $@ $^
 
 build/%.o: src/%.c src/%.h | build/
@@ -44,9 +42,11 @@ build/:
 
 clean:
 	rm -rf build
+	rm -f test_*
 
 wipe: clean
 	rm -f *.png
 	rm -f run_test
 	rm -f tags
 	rm -f *.so
+	rm -f *.a

@@ -12,6 +12,11 @@ typedef enum { RGB, RGBA, GRAYSCALE, INDEXED } pt_color_mode;
 typedef struct { pt_uc r, g, b; } pt_color;
 typedef struct { pt_uc r, g, b, a; } pt_color_a;
 
+static const pt_color pt_white = {255, 255, 255};
+static const pt_color_a pt_white_a = {255, 255, 255, 255};
+static const pt_color pt_black = {0, 0, 0};
+static const pt_color_a pt_black_a = {0, 0, 0, 255};
+
 typedef struct {
   size_t length;
   pt_color colors[];
@@ -44,22 +49,24 @@ typedef pt_bin_buf* PTBinBuf;
 
 /* Color conversion   */
 inline pt_color_a pt_rgb_to_rgba(const pt_color src){ return (pt_color_a) {src.r, src.g, src.b, 255}; }
-inline pt_uc pt_rgb_to_grayscale(const pt_color src){ return (src.r + src.g + src.b)/3; }
+inline pt_uc pt_rgb_to_grayscale(const pt_color src){ return (77 * src.r + 151 * src.g + 28 * src.b) >> 8; }
 inline pt_color pt_rgba_to_rgb(const pt_color_a src){ return (pt_color) {src.r, src.g, src.b}; }
-inline pt_uc pt_rgba_to_grayscale(const pt_color_a src){ return (src.r + src.g + src.b)/3; }
+inline pt_uc pt_rgba_to_grayscale(const pt_color_a src){ return (77 * src.r + 151 * src.g + 28 * src.b) >> 8; }
 /*--------------------*/
 
 /* File IO          */
-PTImg pt_load(char* file_name);
+PTImg pt_load(char* file_name, pt_color_mode mode);
 bool pt_write(char* file_name, PTImg img);
 /*------------------*/
 
 /* Memory allocation */
-PTImg pt_new_img(uint w, uint h, pt_color_mode mode);
+PTImg pt_new(uint w, uint h, pt_color_mode mode);
 PTImg pt_new_indexed(uint w, uint h, size_t length);
 PTBinBuf pt_new_bb(uint w, uint h);
 
-void pt_free_img(PTImg img);
+void pt_clear(PTImg img);
+
+void pt_free(PTImg img);
 void pt_free_indexed(PTImg img);
 void pt_free_bb(PTBinBuf img);
 
